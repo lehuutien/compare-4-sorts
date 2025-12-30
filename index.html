@@ -15,7 +15,6 @@ body{
 
 h1{margin:20px 0}
 
-/* Lưới 2x2 */
 .grid{
     display:grid;
     grid-template-columns:1fr 1fr;
@@ -36,7 +35,6 @@ h1{margin:20px 0}
     font-size:18px;
 }
 
-/* Dãy cột */
 .row{
     display:flex;
     align-items:flex-end;
@@ -50,10 +48,10 @@ h1{margin:20px 0}
     background:#3498db;
     border-radius:5px 5px 0 0;
     position:relative;
-    transition:height 0.18s linear;
+    transition:all 0.18s linear;
 }
 
-/* Số trên cột */
+/* Số */
 .bar span{
     position:absolute;
     bottom:100%;
@@ -62,12 +60,14 @@ h1{margin:20px 0}
     margin-bottom:6px;
     font-size:13px;
     font-weight:bold;
-    color:#ffffff;
+    color:#fff;
 }
 
-.sorted{background:#2ecc71}
+/* Màu trạng thái */
+.compare{ background:#f1c40f; }
+.pivot{ background:#e74c3c; }
+.sorted{ background:#2ecc71; }
 
-/* Nút */
 .controls{
     margin:25px 0 35px;
 }
@@ -146,12 +146,19 @@ function createPanel(name, arr){
     return row;
 }
 
-function drawRow(row, arr){
+function drawRow(row, arr, highlights={}){
     const bars=row.querySelectorAll(".bar");
+    bars.forEach(b=>b.className="bar");
+
     arr.forEach((v,i)=>{
         bars[i].style.height=v*2+"px";
         bars[i].querySelector("span").textContent=v;
     });
+
+    if(highlights.compare)
+        highlights.compare.forEach(i=>bars[i]?.classList.add("compare"));
+    if(highlights.pivot!=null)
+        bars[highlights.pivot]?.classList.add("pivot");
 }
 
 async function start(){
@@ -159,7 +166,7 @@ async function start(){
     randomArray();
 
     algorithms.forEach(algo=>{
-        const arr=[...baseArray]; // CÙNG DỮ LIỆU
+        const arr=[...baseArray];
         const row=createPanel(algo.name, arr);
         algo.sort(arr,row);
     });
@@ -170,9 +177,11 @@ async function start(){
 async function bubbleSort(arr,row){
     for(let i=0;i<arr.length;i++){
         for(let j=0;j<arr.length-i-1;j++){
+            drawRow(row,arr,{compare:[j,j+1]});
+            await sleep();
             if(arr[j]>arr[j+1]){
                 [arr[j],arr[j+1]]=[arr[j+1],arr[j]];
-                drawRow(row,arr);
+                drawRow(row,arr,{compare:[j,j+1]});
                 await sleep();
             }
         }
@@ -185,12 +194,12 @@ async function insertionSort(arr,row){
         let key=arr[i], j=i-1;
         while(j>=0 && arr[j]>key){
             arr[j+1]=arr[j];
-            j--;
-            drawRow(row,arr);
+            drawRow(row,arr,{compare:[j,j+1]});
             await sleep();
+            j--;
         }
         arr[j+1]=key;
-        drawRow(row,arr);
+        drawRow(row,arr,{pivot:j+1});
         await sleep();
     }
     markSorted(row);
@@ -201,36 +210,48 @@ async function mergeSort(arr,row,l=0,r=arr.length-1){
     const m=Math.floor((l+r)/2);
     await mergeSort(arr,row,l,m);
     await mergeSort(arr,row,m+1,r);
+
     let tmp=[], i=l, j=m+1;
     while(i<=m && j<=r){
         tmp.push(arr[i]<arr[j]?arr[i++]:arr[j++]);
     }
     while(i<=m) tmp.push(arr[i++]);
     while(j<=r) tmp.push(arr[j++]);
+
     for(let k=0;k<tmp.length;k++){
         arr[l+k]=tmp[k];
-        drawRow(row,arr);
+        drawRow(row,arr,{compare:[l+k]});
         await sleep();
     }
+
     if(l===0 && r===arr.length-1) markSorted(row);
 }
 
 async function quickSort(arr,row,l=0,r=arr.length-1){
     if(l>=r) return;
+
     let pivot=arr[r], i=l;
+    drawRow(row,arr,{pivot:r});
+    await sleep();
+
     for(let j=l;j<r;j++){
+        drawRow(row,arr,{compare:[j],pivot:r});
+        await sleep();
         if(arr[j]<pivot){
             [arr[i],arr[j]]=[arr[j],arr[i]];
-            i++;
-            drawRow(row,arr);
+            drawRow(row,arr,{compare:[i,j],pivot:r});
             await sleep();
+            i++;
         }
     }
+
     [arr[i],arr[r]]=[arr[r],arr[i]];
-    drawRow(row,arr);
+    drawRow(row,arr,{pivot:i});
     await sleep();
+
     await quickSort(arr,row,l,i-1);
     await quickSort(arr,row,i+1,r);
+
     if(l===0 && r===arr.length-1) markSorted(row);
 }
 
