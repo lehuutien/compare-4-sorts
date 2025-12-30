@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Compare 4 Sorting Algorithms</title>
+
+<style>
+body{
+    margin:0;
+    font-family:Arial, sans-serif;
+    background:#0f1220;
+    color:white;
+    text-align:center;
+}
+
+h1{margin:20px 0}
+
+/* Lưới 2x2 */
+.grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:30px;
+    padding:20px 40px;
+}
+
+.panel{
+    background:#161a2f;
+    border-radius:14px;
+    padding:15px;
+}
+
+.title{
+    font-weight:bold;
+    color:#f1c40f;
+    margin-bottom:10px;
+    font-size:18px;
+}
+
+/* Dãy cột */
+.row{
+    display:flex;
+    align-items:flex-end;
+    justify-content:center;
+    gap:4px;
+    height:240px;
+}
+
+.bar{
+    width:22px;
+    background:#3498db;
+    border-radius:5px 5px 0 0;
+    position:relative;
+    transition:height 0.18s linear;
+}
+
+/* Số trên cột */
+.bar span{
+    position:absolute;
+    bottom:100%;
+    left:50%;
+    transform:translateX(-50%);
+    margin-bottom:6px;
+    font-size:13px;
+    font-weight:bold;
+    color:#ffffff;
+}
+
+.sorted{background:#2ecc71}
+
+/* Nút */
+.controls{
+    margin:25px 0 35px;
+}
+
+button{
+    padding:12px 30px;
+    font-size:18px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    background:#9b59b6;
+    color:white;
+}
+button:hover{background:#8e44ad}
+</style>
+</head>
+
+<body>
+
+<h1>So sánh 4 thuật toán sắp xếp</h1>
+
+<div class="grid" id="grid"></div>
+
+<div class="controls">
+    <button onclick="start()">▶ START</button>
+</div>
+
+<script>
+const SIZE = 20;
+const SPEED = 110;
+let baseArray = [];
+
+const algorithms = [
+    { name: "Bubble Sort", sort: bubbleSort },
+    { name: "Insertion Sort", sort: insertionSort },
+    { name: "Merge Sort", sort: mergeSort },
+    { name: "Quick Sort", sort: quickSort }
+];
+
+const grid = document.getElementById("grid");
+
+function randomArray(){
+    baseArray=[];
+    for(let i=0;i<SIZE;i++){
+        baseArray.push(Math.floor(Math.random()*90)+10);
+    }
+}
+
+function createPanel(name, arr){
+    const panel=document.createElement("div");
+    panel.className="panel";
+
+    const title=document.createElement("div");
+    title.className="title";
+    title.textContent=name;
+
+    const row=document.createElement("div");
+    row.className="row";
+
+    arr.forEach(v=>{
+        const bar=document.createElement("div");
+        bar.className="bar";
+        bar.style.height=v*2+"px";
+
+        const label=document.createElement("span");
+        label.textContent=v;
+
+        bar.appendChild(label);
+        row.appendChild(bar);
+    });
+
+    panel.appendChild(title);
+    panel.appendChild(row);
+    grid.appendChild(panel);
+
+    return row;
+}
+
+function drawRow(row, arr){
+    const bars=row.querySelectorAll(".bar");
+    arr.forEach((v,i)=>{
+        bars[i].style.height=v*2+"px";
+        bars[i].querySelector("span").textContent=v;
+    });
+}
+
+async function start(){
+    grid.innerHTML="";
+    randomArray();
+
+    algorithms.forEach(algo=>{
+        const arr=[...baseArray]; // CÙNG DỮ LIỆU
+        const row=createPanel(algo.name, arr);
+        algo.sort(arr,row);
+    });
+}
+
+/* ===== SORTS ===== */
+
+async function bubbleSort(arr,row){
+    for(let i=0;i<arr.length;i++){
+        for(let j=0;j<arr.length-i-1;j++){
+            if(arr[j]>arr[j+1]){
+                [arr[j],arr[j+1]]=[arr[j+1],arr[j]];
+                drawRow(row,arr);
+                await sleep();
+            }
+        }
+    }
+    markSorted(row);
+}
+
+async function insertionSort(arr,row){
+    for(let i=1;i<arr.length;i++){
+        let key=arr[i], j=i-1;
+        while(j>=0 && arr[j]>key){
+            arr[j+1]=arr[j];
+            j--;
+            drawRow(row,arr);
+            await sleep();
+        }
+        arr[j+1]=key;
+        drawRow(row,arr);
+        await sleep();
+    }
+    markSorted(row);
+}
+
+async function mergeSort(arr,row,l=0,r=arr.length-1){
+    if(l>=r) return;
+    const m=Math.floor((l+r)/2);
+    await mergeSort(arr,row,l,m);
+    await mergeSort(arr,row,m+1,r);
+    let tmp=[], i=l, j=m+1;
+    while(i<=m && j<=r){
+        tmp.push(arr[i]<arr[j]?arr[i++]:arr[j++]);
+    }
+    while(i<=m) tmp.push(arr[i++]);
+    while(j<=r) tmp.push(arr[j++]);
+    for(let k=0;k<tmp.length;k++){
+        arr[l+k]=tmp[k];
+        drawRow(row,arr);
+        await sleep();
+    }
+    if(l===0 && r===arr.length-1) markSorted(row);
+}
+
+async function quickSort(arr,row,l=0,r=arr.length-1){
+    if(l>=r) return;
+    let pivot=arr[r], i=l;
+    for(let j=l;j<r;j++){
+        if(arr[j]<pivot){
+            [arr[i],arr[j]]=[arr[j],arr[i]];
+            i++;
+            drawRow(row,arr);
+            await sleep();
+        }
+    }
+    [arr[i],arr[r]]=[arr[r],arr[i]];
+    drawRow(row,arr);
+    await sleep();
+    await quickSort(arr,row,l,i-1);
+    await quickSort(arr,row,i+1,r);
+    if(l===0 && r===arr.length-1) markSorted(row);
+}
+
+function markSorted(row){
+    row.querySelectorAll(".bar").forEach(b=>b.classList.add("sorted"));
+}
+
+function sleep(){
+    return new Promise(r=>setTimeout(r,SPEED));
+}
+</script>
+
+</body>
+</html>
